@@ -1,4 +1,4 @@
-# 八字排盘系统
+# AI算命系统 使用说明
 
 这是一个基于Python的八字排盘系统，使用寿星天文历（sxtwl）库进行农历和八字的计算。
 
@@ -17,14 +17,16 @@ pip install -r requirements.txt
 
 ## 启动系统
 
-1. 启动后端服务：
+1.启动后端服务：
+
 ```bash
 python run_server.py
 ```
 
-2. 访问系统：
-- 后端服务地址：http://localhost:8000
-- API文档地址：http://localhost:8000/docs
+2.访问系统：
+
+- 后端服务地址：<http://localhost:8000>
+- API文档地址：<http://localhost:8000/docs>
 - 前端页面：使用浏览器直接打开 frontend/index.html
 
 ## 使用方法
@@ -51,4 +53,4 @@ print("五行:", " ".join(bazi["five_elements"]))
 
 - Python 3.6+
 - sxtwl 2.0.6
-- python-dateutil 2.8.2+ 
+- python-dateutil 2.8.2+
