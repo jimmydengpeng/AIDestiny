@@ -122,16 +122,15 @@ class BaziChartEngine:
             
             # 计算天干十神
             stem = bazi[pillar]["heavenly_stem"]
-            if stem != day_stem:  # 不计算日干的十神
-                stem_element = self.FIVE_ELEMENTS[stem]
-                relation = self.FIVE_ELEMENTS_RELATIONS[day_element][stem_element]
-                stem_yin_yang = self.YIN_YANG[stem]
-                result[pillar]["heavenly_stem"] = self.TEN_GODS[(
-                    "阳" if stem_yin_yang == day_yin_yang else "阴",
-                    relation
-                )]
+            stem_element = self.FIVE_ELEMENTS[stem]
+            relation = self.FIVE_ELEMENTS_RELATIONS[day_element][stem_element]
+            stem_yin_yang = self.YIN_YANG[stem]
+            result[pillar]["heavenly_stem"] = self.TEN_GODS[(
+                "阳" if stem_yin_yang == day_yin_yang else "阴",
+                relation
+            )]
             
-            # 计算地支藏干的十神（简化处理，只计算地支本气）
+            # 计算地支藏干的十神
             branch = bazi[pillar]["earthly_branch"]
             result[pillar]["earthly_branch"] = self._get_branch_ten_god(branch, day_stem)
         
