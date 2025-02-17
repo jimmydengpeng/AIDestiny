@@ -1,4 +1,4 @@
-sxtwl==2.0.6
+sxtwl
 python-dateutil>=2.8.2
 fastapi>=0.68.0
 uvicorn>=0.15.0

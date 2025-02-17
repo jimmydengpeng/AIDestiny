@@ -327,7 +327,7 @@
                 const calculateBazi = async () => {
                     try {
                         console.log('发送请求:', birthInfo.value)
-                        const response = await axios.post('http://localhost:8000/api/calculate_bazi', birthInfo.value)
+                        const response = await axios.post('http://localhost:8080/api/calculate_bazi', birthInfo.value)
                         console.log('收到响应:', response.data)
                         baziResult.value = response.data
                     } catch (error) {
