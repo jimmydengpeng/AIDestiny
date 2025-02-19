@@ -2,6 +2,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.layout import Layout
+from rich.markdown import Markdown
 from typing import Any, Dict, Optional
 
 console = Console()
@@ -82,20 +83,10 @@ def display_model_response(content: str, metadata: Dict[str, Any], debug: bool =
         console.print("\n[dim]Debug: Response Metadata Structure:[/dim]")
         console.print(metadata)
     
-    # 创建布局
-    layout = Layout()
-    layout.split_column(
-        Layout(name="response"),
-        Layout(name="info")
-    )
-    
-    # 设置每个部分的比例
-    # layout["response"].ratio = 2
-    # layout["info"].ratio = 3
-    
-    # 模型响应
-    layout["response"].update(Panel(
-        content,
+    # 使用Markdown渲染模型响应
+    md = Markdown(content)
+    console.print(Panel(
+        md,
         title="[bold green]模型响应[/bold green]",
         border_style="green",
         padding=(1, 2),
@@ -103,13 +94,10 @@ def display_model_response(content: str, metadata: Dict[str, Any], debug: bool =
     ))
     
     # 信息面板
-    layout["info"].update(Panel(
+    console.print(Panel(
         create_info_table(metadata),
         title="[bold blue]模型运行信息[/bold blue]",
-        border_style="blue", 
+        border_style="blue",
         padding=(1, 2),
         expand=False,
     ))
-    
-    # 打印布局
-    console.print(layout)
