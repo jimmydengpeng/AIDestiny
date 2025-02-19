@@ -3,3 +3,7 @@ python-dateutil>=2.8.2
 fastapi>=0.68.0
 uvicorn>=0.15.0
 pydantic>=1.8.0
+langchain-ollama
+langchain-core
+langchain-community
+rich
