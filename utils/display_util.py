@@ -1,3 +1,4 @@
+from rich import print
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -6,6 +7,7 @@ from rich.markdown import Markdown
 from typing import Any, Dict, Optional
 
 console = Console()
+print(f"console size: ({console.width}, {console.height})")
 
 def format_duration(nanoseconds: int, total: Optional[int] = None) -> str:
     """将纳秒转换为可读时间格式，如果提供total则计算百分比"""
@@ -15,12 +17,7 @@ def format_duration(nanoseconds: int, total: Optional[int] = None) -> str:
         return f"{milliseconds:.2f}ms ({percentage:.1f}%)"
     return f"{milliseconds:.2f}ms"
 
-def create_info_table(metadata: Dict[str, Any]) -> Table:
-    """创建信息表格"""
-    table = Table(box=None, show_header=False, show_edge=False, pad_edge=False, padding=(0, 4))
-    table.add_column("Label", style="cyan")
-    table.add_column("Value", style="green")
-    
+def add_response_meta_info(table: Table, metadata: Dict[str, Any]):
     # 基本信息
     table.add_row("模型", metadata.get('model', 'unknown'))
     table.add_row("创建时间", metadata.get('created_at', 'unknown'))
@@ -61,6 +58,13 @@ def create_info_table(metadata: Dict[str, Any]) -> Table:
         avg_eval_time = metadata.get('eval_duration', 0) / metadata.get('eval_count', 1)
         table.add_row("平均生成评估时间", format_duration(int(avg_eval_time)))
     
+    # 计算生成速度
+    if metadata.get('eval_count', 0) > 0 and metadata.get('eval_duration', 0) > 0:
+        # 将纳秒转换为秒
+        eval_duration_seconds = metadata.get('eval_duration', 0) / 1_000_000_000
+        generation_speed = metadata.get('eval_count', 0) / eval_duration_seconds
+        table.add_row("生成速度", f"{generation_speed:.1f} tokens/s")
+    
     # 消息信息
     message = metadata.get('message', {})
     if isinstance(message, dict):
@@ -69,35 +73,64 @@ def create_info_table(metadata: Dict[str, Any]) -> Table:
         table.add_row("包含图片", "是" if message.get('images', None) else "否")
         table.add_row("包含工具调用", "是" if message.get('tool_calls', None) else "否")
     
-    return table
 
-def display_model_response(content: str, metadata: Dict[str, Any], debug: bool = False) -> None:
+def add_usage_meta_info(table: Table, metadata: Dict[str, Any]):
+    """添加令牌使用信息到表格
+    
+    Args:
+        table: 要添加信息的表格
+        metadata: 包含令牌使用信息的元数据
+    """
+    if not metadata:
+        return
+        
+    # 添加分隔空行
+    
+    # 添加令牌使用信息
+    table.add_row("输入tokens", str(metadata.get('input_tokens', 0)))
+    table.add_row("输出tokens", str(metadata.get('output_tokens', 0)))
+    table.add_row("全部tokens", str(metadata.get('total_tokens', 0)))
+
+
+def display_model_response(content: str, response_metadata: Dict[str, Any], usage_metadata: Optional[Dict[str, Any]] = None, debug: bool = False) -> None:
     """显示模型响应和相关信息
     
     Args:
         content: 模型的响应内容
-        metadata: 响应的元数据
+        response_metadata: 响应的元数据
+        usage_metadata: 令牌使用的元数据（可选）
         debug: 是否显示调试信息
     """
     if debug:
         console.print("\n[dim]Debug: Response Metadata Structure:[/dim]")
-        console.print(metadata)
+        console.print(response_metadata)
+        if usage_metadata:
+            console.print("\n[dim]Debug: Usage Metadata Structure:[/dim]")
+            console.print(usage_metadata)
     
     # 使用Markdown渲染模型响应
     md = Markdown(content)
     console.print(Panel(
         md,
-        title="[bold green]模型响应[/bold green]",
-        border_style="green",
+        title="[bold magenta]模型响应[/bold magenta]",
+        border_style="magenta",
         padding=(1, 2),
         expand=False,
     ))
     
-    # 信息面板
+    # 创建信息表格
+    table = Table(box=None, show_header=False, show_edge=False, pad_edge=False, padding=(0, 4))
+    table.add_column("Label", style="cyan")
+    table.add_column("Value", style="green")
+
+    add_response_meta_info(table, response_metadata)
+    table.add_row("", "")
+    add_usage_meta_info(table, usage_metadata)
+
     console.print(Panel(
-        create_info_table(metadata),
-        title="[bold blue]模型运行信息[/bold blue]",
-        border_style="blue",
+        table,
+        title="[bold cyan]模型运行信息[/bold cyan]",
+        border_style="cyan",
         padding=(1, 2),
         expand=False,
     ))
