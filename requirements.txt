@@ -7,3 +7,5 @@ langchain-ollama
 langchain-core
 langchain-community
 rich
+pypdf
+notebook
