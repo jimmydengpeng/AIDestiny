@@ -83,7 +83,7 @@ class FateOwner(BaseModel):
     birth_info: BirthInfo = Field(..., description="生日信息")
     bazi_info: Optional[BaziInfo] = Field(None, description="八字信息")
     
-    def calculate_bazi(self, engine=None):
+    def calculate_bazi(self, engine=None) -> BaziInfo:
         """计算八字信息
         
         如果没有提供排盘引擎，会自动导入并创建一个

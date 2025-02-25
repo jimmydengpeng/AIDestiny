@@ -21,11 +21,11 @@ console = Console()
 def main():
     # 创建生日信息
     birth_info = BirthInfo(
-        year=1990,
+        year=1992,
         month=8,
-        day=15,
-        hour=12,
-        minute=30
+        day=25,
+        hour=8,
+        minute=0
     )
     
     # 创建命主对象
@@ -42,7 +42,9 @@ def main():
     console.print(Panel(
         fate_owner.get_summary(),
         title="命主信息",
-        border_style="green"
+        border_style="cyan",
+        expand=False,
+        padding=(1, 2)
     ))
     
     # 打印详细的八字信息
