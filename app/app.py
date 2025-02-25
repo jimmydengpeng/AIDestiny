@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from datetime import datetime
-from app.paipan_engine import BaziChartEngine
+from app.paipan_engine import BaziPaipanEngine
 from typing import Dict, List
 import logging
 import os
@@ -72,7 +72,7 @@ async def calculate_bazi(birth_info: BirthInfo):
         )
 
         # 计算八字
-        engine = BaziChartEngine()
+        engine = BaziPaipanEngine()
         bazi = engine.calculate_bazi(birth_time)
         
         # logger.info(f"计算结果：{bazi}")

@@ -1,4 +1,4 @@
-# AI算命系统 使用说明
+# 🧚‍♀️飞灵（Fatelling）- AI智能命运决策助手
 
 这是一个基于Python的八字排盘系统，使用寿星天文历（sxtwl）库进行农历和八字的计算。
 
@@ -25,29 +25,27 @@ python run_server.py
 
 2.访问系统：
 
-- 后端服务地址：<http://localhost:8000>
-- API文档地址：<http://localhost:8000/docs>
+- 后端服务地址：<http://localhost:8080>
+- API文档地址：<http://localhost:8080/docs>
 - 前端页面：使用浏览器直接打开 frontend/index.html
 
 ## 使用方法
 
-```python
-from datetime import datetime
-from bazi_chart_engine import BaziChartEngine
+### 模型部署
 
-# 创建八字排盘引擎实例
-engine = BaziChartEngine()
+#### 远程模型调用
 
-# 设置出生时间（示例：1990年1月1日12点）
-birth_time = datetime(1990, 1, 1, 12, 0)
+1. 在项目根目录创建 `.env` 文件
+2. 输入你的API密钥，例如：`API_KEY=your_api_key_here`
 
-# 计算八字
-bazi = engine.calculate_bazi(birth_time)
+#### 本地模型部署
 
-# 打印结果
-print("八字:", engine.get_bazi_string(bazi))
-print("五行:", " ".join(bazi["five_elements"]))
-```
+1. 安装并使用Ollama下载模型
+2. 启动本地模型，例如：`ollama run deepseek-r1:8b`
+
+### 使用方法
+
+- 输入出生日期和时间，选择性别，点击“计算八字”按钮，即可获取八字排盘结果。
 
 ## 系统要求
 

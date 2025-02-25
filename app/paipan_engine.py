@@ -2,7 +2,7 @@ from datetime import datetime
 import sxtwl  # 使用寿星天文历库计算农历和八字
 from typing import Dict, Tuple, List
 
-class BaziChartEngine:
+class BaziPaipanEngine:
     """八字排盘引擎"""
     
     # 天干
@@ -238,7 +238,7 @@ def main():
         birth_time = datetime(year, month, day, hour, 0)
         
         # 计算八字
-        engine = BaziChartEngine()
+        engine = BaziPaipanEngine()
         bazi = engine.calculate_bazi(birth_time)
         
         # 输出结果
