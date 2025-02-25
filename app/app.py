@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from datetime import datetime
-from bazi_chart_engine import BaziChartEngine
+from app.paipan_engine import BaziChartEngine
 from typing import Dict, List
 import logging
 import os
@@ -48,7 +48,7 @@ class BaziResponse(BaseModel):
 @app.post("/api/calculate_bazi", response_model=BaziResponse)
 async def calculate_bazi(birth_info: BirthInfo):
     try:
-        logger.info(f"收到请求：{birth_info}")
+        # logger.info(f"收到请求：{birth_info}")
         
         # 验证输入
         if not (1900 <= birth_info.year <= 2100):
@@ -75,7 +75,7 @@ async def calculate_bazi(birth_info: BirthInfo):
         engine = BaziChartEngine()
         bazi = engine.calculate_bazi(birth_time)
         
-        logger.info(f"计算结果：{bazi}")
+        # logger.info(f"计算结果：{bazi}")
 
         # 构造响应
         response = {
