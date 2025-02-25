@@ -8,6 +8,9 @@ from app.paipan_engine import BaziPaipanEngine
 from typing import Dict, List
 import logging
 import os
+from app.model import get_chat_model
+from langchain.schema import HumanMessage
+from app.fate_owner import BirthInfo, FateOwner, Gender, BaziInfo
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -31,13 +34,6 @@ app.add_middleware(
 # 挂载静态文件目录
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
-class BirthInfo(BaseModel):
-    year: int
-    month: int
-    day: int
-    hour: int
-    gender: str  # 添加性别字段
-
 class BaziResponse(BaseModel):
     solar_date: str
     bazi_string: str
@@ -48,47 +44,33 @@ class BaziResponse(BaseModel):
 @app.post("/api/calculate_bazi", response_model=BaziResponse)
 async def calculate_bazi(birth_info: BirthInfo):
     try:
-        # logger.info(f"收到请求：{birth_info}")
+        # 验证输入已经由Pydantic模型完成
         
-        # 验证输入
-        if not (1900 <= birth_info.year <= 2100):
-            raise HTTPException(status_code=400, detail="年份必须在1900-2100之间")
-        if not (1 <= birth_info.month <= 12):
-            raise HTTPException(status_code=400, detail="月份必须在1-12之间")
-        if not (1 <= birth_info.day <= 31):
-            raise HTTPException(status_code=400, detail="日期必须在1-31之间")
-        if not (0 <= birth_info.hour <= 23):
-            raise HTTPException(status_code=400, detail="小时必须在0-23之间")
-        if birth_info.gender not in ["male", "female"]:
-            raise HTTPException(status_code=400, detail="性别必须为male或female")
-
-        # 创建日期对象
-        birth_time = datetime(
-            birth_info.year,
-            birth_info.month,
-            birth_info.day,
-            birth_info.hour,
-            0
+        # 创建命主对象
+        fate_owner = FateOwner(
+            gender=Gender.MALE if birth_info.gender == "male" else Gender.FEMALE,
+            birth_info=birth_info
         )
-
+        
         # 计算八字
         engine = BaziPaipanEngine()
-        bazi = engine.calculate_bazi(birth_time)
+        bazi_info = fate_owner.calculate_bazi(engine)
         
-        # logger.info(f"计算结果：{bazi}")
-
         # 构造响应
         response = {
-            "solar_date": f"{birth_info.year}年{birth_info.month}月{birth_info.day}日 {birth_info.hour:02d}时",
-            "bazi_string": engine.get_bazi_string(bazi),
-            "five_elements": bazi["five_elements"],
+            "solar_date": str(birth_info),
+            "bazi_string": bazi_info.get_bazi_string(),
+            "five_elements": bazi_info.five_elements,
             "pillars": {
-                "year": bazi["year"],
-                "month": bazi["month"],
-                "day": bazi["day"],
-                "hour": bazi["hour"]
+                "year": {"heavenly_stem": bazi_info.year.heavenly_stem, "earthly_branch": bazi_info.year.earthly_branch},
+                "month": {"heavenly_stem": bazi_info.month.heavenly_stem, "earthly_branch": bazi_info.month.earthly_branch},
+                "day": {"heavenly_stem": bazi_info.day.heavenly_stem, "earthly_branch": bazi_info.day.earthly_branch},
+                "hour": {"heavenly_stem": bazi_info.hour.heavenly_stem, "earthly_branch": bazi_info.hour.earthly_branch}
             },
-            "ten_gods": bazi["ten_gods"]
+            "ten_gods": {
+                pillar: {"heavenly_stem": god.heavenly_stem, "earthly_branch": god.earthly_branch}
+                for pillar, god in bazi_info.ten_gods.items()
+            } if bazi_info.ten_gods else {}
         }
 
         return response
@@ -96,6 +78,29 @@ async def calculate_bazi(birth_info: BirthInfo):
     except Exception as e:
         logger.error(f"发生错误：{str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/basic_report")
+async def get_basic_report(birth_info: BirthInfo):
+    """获取基本命盘解读"""
+    # 创建命主对象
+    fate_owner = FateOwner(
+        gender=Gender.MALE if birth_info.gender == "male" else Gender.FEMALE,
+        birth_info=birth_info
+    )
+    
+    # 计算八字
+    fate_owner.calculate_bazi()
+    
+    # 使用LLM生成解读
+    llm = get_chat_model(model_source=os.environ.get("MODEL_SOURCE", "local"))
+    prompt = f"请对以下八字进行命理解读：{fate_owner.bazi_info.get_bazi_string()}"
+    messages = [HumanMessage(content=prompt)]
+    response = llm.invoke(messages)
+    
+    return {
+        "bazi": fate_owner.bazi_info.get_bazi_string(),
+        "reading": response.content
+    }
 
 @app.get("/")
 async def root():

@@ -200,7 +200,7 @@ class BaziPaipanEngine:
         Args:
             bazi: 八字信息字典
         Returns:
-            格式化的八字字符串
+            格式化的八字字符串, e.g., "甲子 乙丑 丙寅 丁卯"
         """
         result = []
         for pillar in ["year", "month", "day", "hour"]:
