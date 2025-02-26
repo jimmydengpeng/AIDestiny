@@ -49,51 +49,79 @@ class BaziPaipanEngine:
         ("阴", "生"): "伤官"
     }
 
+    # 地支藏干对应表
+    BRANCH_HIDDEN_STEM = {
+        "子": ["癸"],
+        "丑": ["己", "辛", "癸"],
+        "寅": ["甲", "丙", "戊"],
+        "卯": ["乙"],
+        "辰": ["戊", "乙", "癸"],
+        "巳": ["丙", "庚", "戊"],
+        "午": ["丁", "己"],
+        "未": ["己", "丁", "乙"],
+        "申": ["庚", "壬", "戊"],
+        "酉": ["辛"],
+        "戌": ["戊", "辛", "丁"],
+        "亥": ["壬", "甲"]
+    }
+
     def __init__(self):
         pass
+
+    def solar_to_lunar(self, year: int, month: int, day: int) -> Dict:
+        """将阳历转换为农历"""
+        solar_date = sxtwl.fromSolar(year, month, day)
+        return {
+            "year": solar_date.getLunarYear(),
+            "month": solar_date.getLunarMonth(),
+            "day": solar_date.getLunarDay(),
+            "is_leap_month": solar_date.isLunarLeap()
+        }
+
+    def lunar_to_solar(self, year: int, month: int, day: int, is_leap_month: bool = False) -> Dict:
+        """将农历转换为阳历"""
+        lunar_date = sxtwl.fromLunar(year, month, day, is_leap_month)
+        return {
+            "year": lunar_date.getSolarYear(),
+            "month": lunar_date.getSolarMonth(),
+            "day": lunar_date.getSolarDay()
+        }
     
-    def calculate_bazi(self, birth_time: datetime) -> Dict:
+    def calculate_bazi(self, lunar_year: int, lunar_month: int, lunar_day: int, hour: int, is_leap_month: bool = False) -> Dict:
         """
         计算八字
         Args:
-            birth_time: 出生时间
+            lunar_year: 农历年
+            lunar_month: 农历月
+            lunar_day: 农历日
+            hour: 小时（24小时制）
+            is_leap_month: 是否闰月
         Returns:
             包含八字信息的字典
         """
         # 获取农历日期
-        lunar_date = sxtwl.fromSolar(
-            birth_time.year,
-            birth_time.month,
-            birth_time.day
+        lunar_date = sxtwl.fromLunar(
+            lunar_year,
+            lunar_month,
+            lunar_day,
+            is_leap_month
         )
         
         # 计算年月日时的天干地支
         year_gz = lunar_date.getYearGZ()
         month_gz = lunar_date.getMonthGZ()
         day_gz = lunar_date.getDayGZ()
-        hour_gz = self._get_hour_gz(day_gz.tg, birth_time.hour)
+        hour_gz = self._get_hour_gz(day_gz.tg, hour)
         
         # 获取日干（命主）
         day_stem = self.HEAVENLY_STEMS[day_gz.tg]
         
         # 组装八字
         bazi = {
-            "year": {
-                "heavenly_stem": self.HEAVENLY_STEMS[year_gz.tg],
-                "earthly_branch": self.EARTHLY_BRANCHES[year_gz.dz]
-            },
-            "month": {
-                "heavenly_stem": self.HEAVENLY_STEMS[month_gz.tg],
-                "earthly_branch": self.EARTHLY_BRANCHES[month_gz.dz]
-            },
-            "day": {
-                "heavenly_stem": self.HEAVENLY_STEMS[day_gz.tg],
-                "earthly_branch": self.EARTHLY_BRANCHES[day_gz.dz]
-            },
-            "hour": {
-                "heavenly_stem": self.HEAVENLY_STEMS[hour_gz[0]],
-                "earthly_branch": self.EARTHLY_BRANCHES[hour_gz[1]]
-            }
+            "year": self._create_pillar_info(year_gz.tg, year_gz.dz),
+            "month": self._create_pillar_info(month_gz.tg, month_gz.dz),
+            "day": self._create_pillar_info(day_gz.tg, day_gz.dz),
+            "hour": self._create_pillar_info(hour_gz[0], hour_gz[1])
         }
         
         # 计算五行属性
@@ -103,6 +131,18 @@ class BaziPaipanEngine:
         bazi["ten_gods"] = self._calculate_ten_gods(bazi, day_stem)
         
         return bazi
+
+    def _create_pillar_info(self, stem_index: int, branch_index: int) -> Dict:
+        """创建柱信息"""
+        stem = self.HEAVENLY_STEMS[stem_index]
+        branch = self.EARTHLY_BRANCHES[branch_index]
+        hidden_stems = self.BRANCH_HIDDEN_STEM.get(branch, [])
+        
+        return {
+            "heavenly_stem": stem,
+            "earthly_branch": branch,
+            "hidden_stems": hidden_stems
+        }
     
     def _calculate_ten_gods(self, bazi: Dict, day_stem: str) -> Dict[str, Dict[str, str]]:
         """
@@ -133,8 +173,28 @@ class BaziPaipanEngine:
             # 计算地支藏干的十神
             branch = bazi[pillar]["earthly_branch"]
             result[pillar]["earthly_branch"] = self._get_branch_ten_god(branch, day_stem)
+            
+            # 计算地支藏干的十神
+            hidden_stems = bazi[pillar]["hidden_stems"]
+            result[pillar]["hidden_stems"] = [
+                self._calculate_stem_ten_god(hidden_stem, day_stem)
+                for hidden_stem in hidden_stems
+            ]
         
         return result
+    
+    def _calculate_stem_ten_god(self, stem: str, day_stem: str) -> str:
+        """计算天干的十神"""
+        stem_element = self.FIVE_ELEMENTS[stem]
+        day_element = self.FIVE_ELEMENTS[day_stem]
+        relation = self.FIVE_ELEMENTS_RELATIONS[day_element][stem_element]
+        stem_yin_yang = self.YIN_YANG[stem]
+        day_yin_yang = self.YIN_YANG[day_stem]
+        
+        return self.TEN_GODS[(
+            "阳" if stem_yin_yang == day_yin_yang else "阴",
+            relation
+        )]
     
     def _get_branch_ten_god(self, branch: str, day_stem: str) -> str:
         """
@@ -145,23 +205,12 @@ class BaziPaipanEngine:
         Returns:
             十神名称
         """
-        # 地支藏干对应表（简化，只列出本气）
-        BRANCH_HIDDEN_STEM = {
-            "子": "癸", "丑": "己", "寅": "甲",
-            "卯": "乙", "辰": "戊", "巳": "丙",
-            "午": "丁", "未": "己", "申": "庚",
-            "酉": "辛", "戌": "戊", "亥": "壬"
-        }
+        if branch not in self.BRANCH_HIDDEN_STEM:
+            return ""
         
-        hidden_stem = BRANCH_HIDDEN_STEM[branch]
-        day_element = self.FIVE_ELEMENTS[day_stem]
-        hidden_element = self.FIVE_ELEMENTS[hidden_stem]
-        relation = self.FIVE_ELEMENTS_RELATIONS[day_element][hidden_element]
-        
-        return self.TEN_GODS[(
-            "阳" if self.YIN_YANG[hidden_stem] == self.YIN_YANG[day_stem] else "阴",
-            relation
-        )]
+        # 获取地支的本气（第一个藏干）
+        hidden_stem = self.BRANCH_HIDDEN_STEM[branch][0]
+        return self._calculate_stem_ten_god(hidden_stem, day_stem)
     
     def _get_hour_gz(self, day_stem: int, hour: int) -> Tuple[int, int]:
         """
@@ -239,7 +288,7 @@ def main():
         
         # 计算八字
         engine = BaziPaipanEngine()
-        bazi = engine.calculate_bazi(birth_time)
+        bazi = engine.calculate_bazi(birth_time.year, birth_time.month, birth_time.day, birth_time.hour)
         
         # 输出结果
         print("\n=== 八字排盘结果 ===")
