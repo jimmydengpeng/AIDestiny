@@ -1,117 +1,107 @@
-from datetime import datetime
 from typing import Dict, List, Optional
-from pydantic import BaseModel, Field
-from enum import Enum
+from app.paipan_engine import BaziPaipanEngine
+from app.define import Gender, SolarBirthInfo, LunarBirthInfo, BaziInfo, PillarInfo, HeavenlyStem, EarthlyBranch, TenGodInfo, TenGodType, DestinyCycleInfo, StartAge
 
 
-class Gender(str, Enum):
-    """性别枚举"""
-    MALE = "male"
-    FEMALE = "female"
-
-
-class BirthInfo(BaseModel):
-    """生日信息数据结构"""
-    year: int = Field(..., ge=1900, le=2100, description="出生年份，范围1900-2100")
-    month: int = Field(..., ge=1, le=12, description="出生月份，范围1-12")
-    day: int = Field(..., ge=1, le=31, description="出生日期，范围1-31")
-    hour: int = Field(..., ge=0, le=23, description="出生小时，范围0-23")
-    minute: int = Field(0, ge=0, le=59, description="出生分钟，范围0-59")
-    gender: str = Field("male", description="性别，male或female")
+class FateOwner():
+    """命主类，包含生日信息和八字信息"""
+    name: Optional[str]
+    gender: Gender
+    solar_birth_info: Optional[SolarBirthInfo]
+    lunar_birth_info: Optional[LunarBirthInfo]
+    bazi_info: Optional[BaziInfo]
+    engine: BaziPaipanEngine = BaziPaipanEngine()
     
-    def to_datetime(self) -> datetime:
-        """转换为datetime对象"""
-        return datetime(
-            self.year, self.month, self.day, 
-            self.hour, self.minute
+    def __init__(self):
+        # 如果只提供了一种生日信息，自动转换生成另一种
+        if self.solar_birth_info and not self.lunar_birth_info:
+            self._convert_solar_to_lunar()
+        elif self.lunar_birth_info and not self.solar_birth_info:
+            self._convert_lunar_to_solar()
+    
+    def _convert_solar_to_lunar(self):
+        """将阳历转换为农历"""
+        if not self.solar_birth_info:
+            return
+            
+        # 使用排盘引擎进行转换
+        lunar_info = self.engine.solar_to_lunar(
+            self.solar_birth_info.year,
+            self.solar_birth_info.month,
+            self.solar_birth_info.day
+        )
+        
+        # 获取农历信息
+        self.lunar_birth_info = LunarBirthInfo(
+            year=lunar_info["year"],
+            month=lunar_info["month"],
+            day=lunar_info["day"],
+            hour=self.solar_birth_info.hour,
+            minute=self.solar_birth_info.minute,
+            is_leap_month=lunar_info["is_leap_month"]
         )
     
-    def __str__(self) -> str:
-        """返回格式化的生日字符串"""
-        return f"{self.year}年{self.month}月{self.day}日 {self.hour:02d}:{self.minute:02d}"
-
-
-class PillarInfo(BaseModel):
-    """单柱信息（天干地支）"""
-    heavenly_stem: str = Field(..., description="天干")
-    earthly_branch: str = Field(..., description="地支")
-    
-    def __str__(self) -> str:
-        """返回天干地支组合"""
-        return f"{self.heavenly_stem}{self.earthly_branch}"
-
-
-class TenGodInfo(BaseModel):
-    """十神信息"""
-    heavenly_stem: str = Field(..., description="天干十神")
-    earthly_branch: str = Field(..., description="地支十神")
-
-
-class BaziInfo(BaseModel):
-    """八字信息数据结构"""
-    year: PillarInfo = Field(..., description="年柱")
-    month: PillarInfo = Field(..., description="月柱")
-    day: PillarInfo = Field(..., description="日柱")
-    hour: PillarInfo = Field(..., description="时柱")
-    
-    lunar_year: Optional[int] = Field(None, description="农历年")
-    lunar_month: Optional[int] = Field(None, description="农历月")
-    lunar_day: Optional[int] = Field(None, description="农历日")
-    
-    five_elements: List[str] = Field([], description="五行属性")
-    ten_gods: Optional[Dict[str, TenGodInfo]] = Field(None, description="十神信息")
-    
-    def get_bazi_string(self) -> str:
-        """返回八字字符串，如'甲子 乙丑 丙寅 丁卯'"""
-        return f"{self.year} {self.month} {self.day} {self.hour}"
-    
-    def get_five_elements_string(self) -> str:
-        """返回五行字符串，如'木 火 土 金'"""
-        return " ".join(self.five_elements)
-    
-    def get_lunar_date_string(self) -> str:
-        """返回农历日期字符串"""
-        if None in (self.lunar_year, self.lunar_month, self.lunar_day):
-            return "农历信息不完整"
-        return f"农历{self.lunar_year}年{self.lunar_month}月{self.lunar_day}日"
-
-
-class FateOwner(BaseModel):
-    """命主类，包含生日信息和八字信息"""
-    name: Optional[str] = Field(None, description="命主姓名")
-    gender: Gender = Field(..., description="性别")
-    birth_info: BirthInfo = Field(..., description="生日信息")
-    bazi_info: Optional[BaziInfo] = Field(None, description="八字信息")
-    
-    def calculate_bazi(self, engine=None) -> BaziInfo:
-        """计算八字信息
+    def _convert_lunar_to_solar(self):
+        """将农历转换为阳历"""
+        if not self.lunar_birth_info:
+            return
+            
+        # 使用排盘引擎进行转换
+        solar_info = self.engine.lunar_to_solar(
+            self.lunar_birth_info.year,
+            self.lunar_birth_info.month,
+            self.lunar_birth_info.day,
+            self.lunar_birth_info.is_leap_month
+        )
         
-        如果没有提供排盘引擎，会自动导入并创建一个
-        """
-        if engine is None:
-            # 延迟导入，避免循环引用
-            from app.paipan_engine import BaziPaipanEngine
-            engine = BaziPaipanEngine()
+        # 获取阳历信息
+        self.solar_birth_info = SolarBirthInfo(
+            year=solar_info["year"],
+            month=solar_info["month"],
+            day=solar_info["day"],
+            hour=self.lunar_birth_info.hour,
+            minute=self.lunar_birth_info.minute
+        )
+    
+    def calculate_bazi(self) -> BaziInfo:
+        """计算八字信息"""
+        # 确保有农历信息用于计算
+        if not self.lunar_birth_info:
+            if self.solar_birth_info:
+                self._convert_solar_to_lunar()
+            else:
+                raise ValueError("需要阳历或农历生日信息才能计算八字")
         
         # 使用排盘引擎计算八字
-        bazi_dict = engine.calculate_bazi(self.birth_info.to_datetime())
+        bazi_dict = self.engine.calculate_bazi(
+            lunar_year    = self.lunar_birth_info.year,
+            lunar_month   = self.lunar_birth_info.month,
+            lunar_day     = self.lunar_birth_info.day,
+            hour          = self.lunar_birth_info.hour,
+            is_leap_month = self.lunar_birth_info.is_leap_month,
+            gender        = str(self.gender)
+        )
         
         # 构建PillarInfo对象
         year_pillar = PillarInfo(
-            heavenly_stem=bazi_dict["year"]["heavenly_stem"],
-            earthly_branch=bazi_dict["year"]["earthly_branch"]
+            heavenly_stem=HeavenlyStem(bazi_dict["year"]["heavenly_stem"]),
+            earthly_branch=EarthlyBranch(bazi_dict["year"]["earthly_branch"]),
+            hidden_stem=[HeavenlyStem(stem) for stem in bazi_dict["year"]["hidden_stems"]]
         )
         month_pillar = PillarInfo(
-            heavenly_stem=bazi_dict["month"]["heavenly_stem"],
-            earthly_branch=bazi_dict["month"]["earthly_branch"]
+            heavenly_stem=HeavenlyStem(bazi_dict["month"]["heavenly_stem"]),
+            earthly_branch=EarthlyBranch(bazi_dict["month"]["earthly_branch"]),
+            hidden_stem=[HeavenlyStem(stem) for stem in bazi_dict["month"]["hidden_stems"]]
         )
         day_pillar = PillarInfo(
-            heavenly_stem=bazi_dict["day"]["heavenly_stem"],
-            earthly_branch=bazi_dict["day"]["earthly_branch"]
+            heavenly_stem=HeavenlyStem(bazi_dict["day"]["heavenly_stem"]),
+            earthly_branch=EarthlyBranch(bazi_dict["day"]["earthly_branch"]),
+            hidden_stem=[HeavenlyStem(stem) for stem in bazi_dict["day"]["hidden_stems"]]
         )
         hour_pillar = PillarInfo(
-            heavenly_stem=bazi_dict["hour"]["heavenly_stem"],
-            earthly_branch=bazi_dict["hour"]["earthly_branch"]
+            heavenly_stem=HeavenlyStem(bazi_dict["hour"]["heavenly_stem"]),
+            earthly_branch=EarthlyBranch(bazi_dict["hour"]["earthly_branch"]),
+            hidden_stem=[HeavenlyStem(stem) for stem in bazi_dict["hour"]["hidden_stems"]]
         )
         
         # 构建十神信息
@@ -119,53 +109,112 @@ class FateOwner(BaseModel):
         if "ten_gods" in bazi_dict:
             for pillar_name, gods in bazi_dict["ten_gods"].items():
                 ten_gods[pillar_name] = TenGodInfo(
-                    heavenly_stem=gods["heavenly_stem"],
-                    earthly_branch=gods["earthly_branch"]
+                    heavenly_stem=TenGodType(gods["heavenly_stem"]),
+                    earthly_branch=TenGodType(gods["earthly_branch"]),
+                    hidden_stems=[TenGodType(god) for god in gods["hidden_stems"]]
                 )
+        
+        # 计算大运信息
+        destiny_cycle = None
+        lunar_date = {
+            "year": self.lunar_birth_info.year,
+            "month": self.lunar_birth_info.month,
+            "day": self.lunar_birth_info.day,
+            "hour": self.lunar_birth_info.hour,
+            "is_leap_month": self.lunar_birth_info.is_leap_month
+        }
+        destiny_dict = self.engine.calculate_destiny_cycles(lunar_date, str(self.gender))
+        
+        if destiny_dict:
+            destiny_cycles = [
+                PillarInfo(
+                    heavenly_stem=HeavenlyStem(cycle["heavenly_stem"]),
+                    earthly_branch=EarthlyBranch(cycle["earthly_branch"]),
+                    hidden_stem=[HeavenlyStem(stem) for stem in cycle["hidden_stems"]]
+                )
+                for cycle in destiny_dict["cycles"]
+            ]
+            
+            destiny_cycle = DestinyCycleInfo(
+                cycles=destiny_cycles,
+                start_age=StartAge(**destiny_dict["start_age"]),
+                is_forward=destiny_dict["is_forward"]
+            )
         
         # 创建八字信息
         self.bazi_info = BaziInfo(
-            year=year_pillar,
-            month=month_pillar,
-            day=day_pillar,
-            hour=hour_pillar,
-            five_elements=bazi_dict.get("five_elements", []),
-            ten_gods=ten_gods
+            year_pillar=year_pillar,
+            month_pillar=month_pillar,
+            day_pillar=day_pillar,
+            hour_pillar=hour_pillar,
+            five_elements=bazi_dict["five_elements"],
+            ten_gods=ten_gods,
+            destiny_cycle=destiny_cycle
         )
         
         return self.bazi_info
     
     def get_summary(self) -> str:
         """获取命主信息摘要"""
-        gender_str = "男" if self.gender == Gender.MALE else "女"
         summary = [
             f"姓名: {self.name or '未知'}",
-            f"性别: {gender_str}",
-            f"出生: {self.birth_info}"
+            f"性别: {self.gender}"
         ]
+        
+        if self.solar_birth_info:
+            summary.append(f"阳历: {self.solar_birth_info}")
+        if self.lunar_birth_info:
+            summary.append(f"农历: {self.lunar_birth_info}")
         
         if self.bazi_info:
             summary.extend([
                 f"八字: {self.bazi_info.get_bazi_string()}",
+                f"八字(含藏干): {self.bazi_info.get_bazi_string_with_hidden_stem()}",
                 f"五行: {self.bazi_info.get_five_elements_string()}"
             ])
+            
+            if self.bazi_info.destiny_cycle:
+                summary.append(f"大运: {self.bazi_info.destiny_cycle.get_cycles_string()}")
         
         return "\n".join(summary)
     
     @classmethod
     def from_dict(cls, data: Dict) -> "FateOwner":
         """从字典创建FateOwner实例"""
-        birth_info = BirthInfo(
-            year=data["year"],
-            month=data["month"],
-            day=data["day"],
-            hour=data["hour"],
-            minute=data.get("minute", 0),
-            gender=data["gender"]
-        )
+        # 判断是否包含农历信息
+        has_lunar = all(key in data for key in ["lunar_year", "lunar_month", "lunar_day"])
+        # 判断是否包含阳历信息
+        has_solar = all(key in data for key in ["year", "month", "day"])
+        
+        if not (has_lunar or has_solar):
+            raise ValueError("需要提供阳历或农历生日信息")
+        
+        # 构建阳历信息
+        solar_birth_info = None
+        if has_solar:
+            solar_birth_info = SolarBirthInfo(
+                year=data["year"],
+                month=data["month"],
+                day=data["day"],
+                hour=data.get("hour", 0),
+                minute=data.get("minute", 0)
+            )
+        
+        # 构建农历信息
+        lunar_birth_info = None
+        if has_lunar:
+            lunar_birth_info = LunarBirthInfo(
+                year=data["lunar_year"],
+                month=data["lunar_month"],
+                day=data["lunar_day"],
+                hour=data.get("hour", 0),
+                minute=data.get("minute", 0),
+                is_leap_month=data.get("is_leap_month", False)
+            )
         
         return cls(
             name=data.get("name"),
             gender=data["gender"],
-            birth_info=birth_info
+            solar_birth_info=solar_birth_info,
+            lunar_birth_info=lunar_birth_info
         ) 

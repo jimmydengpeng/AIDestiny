@@ -8,6 +8,8 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/element-plus"></script>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <!-- 添加 Markdown 渲染库 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -114,6 +116,63 @@
             color: #666;
             margin-left: 4px;
         }
+        /* 命理报告样式 */
+        .report-card {
+            margin-top: 20px;
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .report-content {
+            margin-top: 20px;
+            line-height: 1.6;
+            font-size: 16px;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+            border: 1px solid #ebeef5;
+            position: relative;
+            min-height: 100px;
+            transition: all 0.3s ease;
+        }
+        .report-content h1, .report-content h2, .report-content h3 {
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+            color: #303133;
+        }
+        .report-content ul, .report-content ol {
+            padding-left: 2em;
+            margin-bottom: 1em;
+        }
+        .report-content p {
+            margin-bottom: 1em;
+        }
+        .report-content strong {
+            font-weight: 600;
+            color: #303133;
+        }
+        /* 打字机效果的光标 */
+        .report-content.typing::after {
+            content: '|';
+            animation: cursor-blink 1s step-start infinite;
+            font-weight: bold;
+            color: #409EFF;
+            position: relative;
+            display: inline-block;
+        }
+        @keyframes cursor-blink {
+            50% { opacity: 0; }
+        }
+        /* 生成中标签样式 */
+        .generating-tag {
+            animation: pulse 1.5s infinite;
+            margin-left: 10px;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
     </style>
 </head>
 <body>
@@ -197,13 +256,33 @@
                             {{ element }}
                         </el-tag>
                     </div>
+                    
+                    <div style="margin-top: 20px; text-align: center;">
+                        <el-button type="success" @click="generateFateReport" :loading="reportLoading">
+                            生成命理报告
+                        </el-button>
+                    </div>
+                </el-card>
+            </div>
+            
+            <!-- 命理报告区域 -->
+            <div v-if="showReport" class="report-card">
+                <el-card>
+                    <template #header>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h3>命理报告</h3>
+                            <el-tag v-if="reportLoading" type="info" class="generating-tag">生成中...</el-tag>
+                        </div>
+                    </template>
+                    
+                    <div class="report-content" :class="{ 'typing': reportLoading }" v-html="renderedReport"></div>
                 </el-card>
             </div>
         </div>
     </div>
 
     <script>
-        const { createApp, ref } = Vue
+        const { createApp, ref, computed } = Vue
         const { ElMessage } = ElementPlus
 
         createApp({
@@ -216,6 +295,14 @@
                     gender: 'male'  // 默认为男性
                 })
                 const baziResult = ref(null)
+                const reportContent = ref('')
+                const reportLoading = ref(false)
+                const showReport = ref(false)
+                
+                // 计算属性：将Markdown内容渲染为HTML
+                const renderedReport = computed(() => {
+                    return marked.parse(reportContent.value)
+                })
 
                 // 天干五行对应关系
                 const stemElements = {
@@ -330,6 +417,9 @@
                         const response = await axios.post('http://localhost:8080/api/calculate_bazi', birthInfo.value)
                         console.log('收到响应:', response.data)
                         baziResult.value = response.data
+                        // 重置报告状态
+                        showReport.value = false
+                        reportContent.value = ''
                     } catch (error) {
                         console.error('请求错误:', error)
                         if (error.response) {
@@ -341,6 +431,97 @@
                         } else {
                             console.error('请求配置错误:', error.message)
                             ElMessage.error('请求发送失败: ' + error.message)
+                        }
+                    }
+                }
+                
+                const generateFateReport = async () => {
+                    if (!baziResult.value) {
+                        ElMessage.warning('请先计算八字')
+                        return
+                    }
+                    
+                    try {
+                        reportLoading.value = true
+                        showReport.value = true
+                        reportContent.value = ''
+                        
+                        console.log('开始准备生成命理报告')
+                        
+                        // 准备请求数据
+                        const requestData = JSON.stringify(birthInfo.value)
+                        console.log('请求数据:', requestData)
+                        
+                        // 关闭之前可能存在的EventSource连接
+                        if (window.activeEventSource) {
+                            console.log('关闭之前的EventSource连接')
+                            window.activeEventSource.close()
+                        }
+                        
+                        // 创建一个新的EventSource连接
+                        const eventSource = new EventSource(`http://localhost:8080/api/fate_report?data=${encodeURIComponent(requestData)}`)
+                        window.activeEventSource = eventSource
+                        
+                        console.log('EventSource连接已创建')
+                        
+                        // 处理开始事件
+                        eventSource.addEventListener('start', (event) => {
+                            console.log('收到start事件:', event)
+                            reportLoading.value = true
+                            // 清空报告内容，准备接收新内容
+                            reportContent.value = ''
+                        })
+                        
+                        // 处理消息事件
+                        eventSource.addEventListener('message', (event) => {
+                            console.log('收到message事件:', event.data)
+                            try {
+                                const data = JSON.parse(event.data)
+                                if (data.text) {
+                                    // 添加新内容并触发重新渲染
+                                    reportContent.value += data.text
+                                    // 滚动到底部
+                                    setTimeout(() => {
+                                        const reportElement = document.querySelector('.report-content')
+                                        if (reportElement) {
+                                            reportElement.scrollTop = reportElement.scrollHeight
+                                        }
+                                    }, 10)
+                                }
+                            } catch (e) {
+                                console.error('解析JSON失败:', e, event.data)
+                            }
+                        })
+                        
+                        // 处理错误事件
+                        eventSource.addEventListener('error', (event) => {
+                            console.error('EventSource错误:', event)
+                            eventSource.close()
+                            window.activeEventSource = null
+                            reportLoading.value = false
+                            
+                            // 如果报告内容为空，显示错误消息
+                            if (!reportContent.value) {
+                                ElMessage.error('生成命理报告失败')
+                            }
+                        })
+                        
+                        // 处理结束事件
+                        eventSource.addEventListener('end', (event) => {
+                            console.log('收到end事件:', event)
+                            console.log('命理报告生成完成')
+                            eventSource.close()
+                            window.activeEventSource = null
+                            reportLoading.value = false
+                        })
+                        
+                    } catch (error) {
+                        console.error('生成命理报告错误:', error)
+                        ElMessage.error('生成命理报告失败: ' + error.message)
+                        reportLoading.value = false
+                        if (window.activeEventSource) {
+                            window.activeEventSource.close()
+                            window.activeEventSource = null
                         }
                     }
                 }
@@ -369,7 +550,12 @@
                 return {
                     birthInfo,
                     baziResult,
+                    reportContent,
+                    reportLoading,
+                    showReport,
+                    renderedReport,
                     calculateBazi,
+                    generateFateReport,
                     getPillarName,
                     getElementType,
                     getStemElement,

@@ -45,10 +45,35 @@ python run_server.py
 
 ### 使用方法
 
-- 输入出生日期和时间，选择性别，点击“计算八字”按钮，即可获取八字排盘结果。
+- 输入出生日期和时间，选择性别，点击"计算八字"按钮，即可获取八字排盘结果。
 
-## 系统要求
+## Todos
 
-- Python 3.6+
-- sxtwl 2.0.6
-- python-dateutil 2.8.2+
+- [x] 命主信息
+- [x] 排盘引擎
+- [x] 大运计算
+- [ ] 前端环境 Dockerfile
+- [ ] 后端环境 Dockerfile 
+- [ ] 提示词模版优化
+
+## 项目结构
+
+```bash
+.
+├── app/                    # 核心应用目录
+│   ├── app.py              # FastAPI应用主程序
+│   ├── paipan_engine.py    # 八字排盘引擎
+│   ├── fate_owner.py       # 命主信息处理
+│   ├── model.py            # AI模型接口
+│   └── prompt_templates.py # 提示词模板
+├── examples/               # 示例/测试用例文件
+├── frontend/               # 前端目录
+│   └── index.html          # 前端页面
+├── utils/                  # 工具函数
+├── pdf/                    # PDF文档资源
+├── txt/                    # 文本资源
+├── run_server.py           # 服务器启动脚本
+├── requirements.txt        # 项目依赖
+├── ROADMAP.md              # 项目路线图
+└── README.md               # 项目说明文档
+```
