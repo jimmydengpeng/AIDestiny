@@ -166,6 +166,34 @@ class TenGodInfo(BaseModel):
     hidden_stems: List[TenGodType] = Field(default_factory=list, description="藏干十神")
 
 
+class StartAge(BaseModel):
+    """起运年龄信息"""
+    years: int = Field(..., description="年")
+    months: int = Field(..., description="月")
+    days: int = Field(..., description="天")
+    
+    def __str__(self) -> str:
+        """返回格式化的起运年龄字符串"""
+        return f"{self.years}岁{self.months}个月{self.days}天"
+
+
+class DestinyCycleInfo(BaseModel):
+    """大运信息数据结构"""
+    cycles: List[PillarInfo] = Field(..., description="大运列表")
+    start_age: StartAge = Field(..., description="起运年龄")
+    is_forward: bool = Field(..., description="是否顺行")
+    
+    def get_cycles_string(self) -> str:
+        """返回格式化的大运信息字符串"""
+        cycles_str = []
+        for i, cycle in enumerate(self.cycles, 1):
+            age = (i * 10) + self.start_age.years
+            cycles_str.append(f"{cycle}({age}岁)")
+        
+        direction = "顺" if self.is_forward else "逆"
+        return f"起运：{self.start_age}\n{direction}行：{' '.join(cycles_str)}"
+
+
 class BaziInfo(BaseModel):
     """八字信息数据结构"""
     
@@ -180,6 +208,9 @@ class BaziInfo(BaseModel):
     
     '''十神'''
     ten_gods: Dict[str, TenGodInfo] = Field(default_factory=dict, description="十神")
+    
+    '''大运'''
+    destiny_cycle: Optional[DestinyCycleInfo] = Field(None, description="大运信息")
     
     def get_bazi_string(self) -> str:
         """返回八字字符串，如'甲子 乙丑 丙寅 丁卯'"""
@@ -312,6 +343,33 @@ class FateOwner(BaseModel):
                     hidden_stems=[TenGodType(god) for god in gods["hidden_stems"]]
                 )
         
+        # 计算大运信息
+        destiny_cycle = None
+        lunar_date = {
+            "year": self.lunar_birth_info.year,
+            "month": self.lunar_birth_info.month,
+            "day": self.lunar_birth_info.day,
+            "hour": self.lunar_birth_info.hour,
+            "is_leap_month": self.lunar_birth_info.is_leap_month
+        }
+        destiny_dict = engine.calculate_destiny_cycles(lunar_date, str(self.gender))
+        
+        if destiny_dict:
+            destiny_cycles = [
+                PillarInfo(
+                    heavenly_stem=HeavenlyStem(cycle["heavenly_stem"]),
+                    earthly_branch=EarthlyBranch(cycle["earthly_branch"]),
+                    hidden_stem=[HeavenlyStem(stem) for stem in cycle["hidden_stems"]]
+                )
+                for cycle in destiny_dict["cycles"]
+            ]
+            
+            destiny_cycle = DestinyCycleInfo(
+                cycles=destiny_cycles,
+                start_age=StartAge(**destiny_dict["start_age"]),
+                is_forward=destiny_dict["is_forward"]
+            )
+        
         # 创建八字信息
         self.bazi_info = BaziInfo(
             year_pillar=year_pillar,
@@ -319,7 +377,8 @@ class FateOwner(BaseModel):
             day_pillar=day_pillar,
             hour_pillar=hour_pillar,
             five_elements=bazi_dict["five_elements"],
-            ten_gods=ten_gods
+            ten_gods=ten_gods,
+            destiny_cycle=destiny_cycle
         )
         
         return self.bazi_info
@@ -342,6 +401,9 @@ class FateOwner(BaseModel):
                 f"八字(含藏干): {self.bazi_info.get_bazi_string_with_hidden_stem()}",
                 f"五行: {self.bazi_info.get_five_elements_string()}"
             ])
+            
+            if self.bazi_info.destiny_cycle:
+                summary.append(f"大运: {self.bazi_info.destiny_cycle.get_cycles_string()}")
         
         return "\n".join(summary)
     

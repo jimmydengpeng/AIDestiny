@@ -15,7 +15,7 @@ from app.fate_owner import (
     SolarBirthInfo, LunarBirthInfo, FateOwner, Gender,
     HeavenlyStem, EarthlyBranch, TenGodType
 )
-from app.paipan_engine import BaziPaipanEngine
+from app.paipan_engine import BaziPaipanEngine 
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -79,6 +79,41 @@ def print_bazi_info(fate_owner: FateOwner):
         console.print("\n[bold cyan]五行[/bold cyan]")
         console.print(fate_owner.bazi_info.get_five_elements_string())
 
+def print_destiny_cycle_info(fate_owner: FateOwner):
+    """打印大运信息"""
+    if not fate_owner.bazi_info or not fate_owner.bazi_info.destiny_cycle:
+        console.print("[red]未计算大运信息[/red]")
+        return
+    
+    console.print("\n[bold cyan]大运信息[/bold cyan]")
+    
+    # 创建大运信息表格
+    table = Table(show_header=True)
+    table.add_column("序", style="cyan", justify="center")
+    table.add_column("干支", style="green")
+    table.add_column("藏干", style="yellow")
+    table.add_column("年龄", style="magenta")
+    
+    # 添加大运数据
+    start_age = fate_owner.bazi_info.destiny_cycle.start_age
+    for i, cycle in enumerate(fate_owner.bazi_info.destiny_cycle.cycles, 1):
+        age = (i * 10) + start_age.years
+        hidden_stems = ", ".join(str(stem) for stem in cycle.hidden_stem) if cycle.hidden_stem else ""
+        table.add_row(
+            str(i),
+            f"{cycle}",
+            hidden_stems,
+            f"{age}岁"
+        )
+    
+    # 打印起运信息
+    direction = "顺" if fate_owner.bazi_info.destiny_cycle.is_forward else "逆"
+    console.print(f"[cyan]起运年龄:[/cyan] {start_age}")
+    console.print(f"[cyan]大运方向:[/cyan] {direction}行")
+    
+    # 打印大运表格
+    console.print(table)
+
 def test_solar_birth():
     """测试阳历生日信息"""
     console.print("\n=== 测试阳历生日信息 ===")
@@ -112,6 +147,7 @@ def test_solar_birth():
     # 打印详细信息
     print_birth_info(fate_owner)
     print_bazi_info(fate_owner)
+    print_destiny_cycle_info(fate_owner)
 
 def test_lunar_birth():
     """测试农历生日信息"""
@@ -147,6 +183,7 @@ def test_lunar_birth():
     # 打印详细信息
     print_birth_info(fate_owner)
     print_bazi_info(fate_owner)
+    print_destiny_cycle_info(fate_owner)
 
 def test_date_conversion():
     """测试日期转换"""
@@ -197,6 +234,7 @@ def test_special_cases():
         title="闰月测试",
         border_style="yellow"
     ))
+    print_destiny_cycle_info(fate_owner)
     
     # 测试子时（夜里23-1点）
     solar_birth_info = SolarBirthInfo(
@@ -219,6 +257,66 @@ def test_special_cases():
         title="子时测试",
         border_style="yellow"
     ))
+    print_destiny_cycle_info(fate_owner)
+    
+    # 测试1996年农历三月二十六日下午2点
+    lunar_birth_info = LunarBirthInfo(
+        year=1996,
+        month=3,
+        day=26,
+        hour=14,
+        is_leap_month=False
+    )
+    
+    fate_owner = FateOwner(
+        name="测试大运",
+        gender=Gender.MALE,  # 测试男性
+        lunar_birth_info=lunar_birth_info
+    )
+    
+    fate_owner.calculate_bazi()
+    
+    console.print(Panel(
+        fate_owner.get_summary(),
+        title="1996年大运测试",
+        border_style="yellow"
+    ))
+    print_destiny_cycle_info(fate_owner)
+
+def test_gender_cases():
+    """测试不同性别和年干阴阳组合的情况"""
+    console.print("\n=== 测试性别和年干阴阳组合 ===")
+    
+    # 测试数据
+    test_cases = [
+        ("男阳年", Gender.MALE, 1984),    # 甲子年，阳年
+        ("男阴年", Gender.MALE, 1985),    # 乙丑年，阴年
+        ("女阳年", Gender.FEMALE, 1984),  # 甲子年，阳年
+        ("女阴年", Gender.FEMALE, 1985)   # 乙丑年，阴年
+    ]
+    
+    for case_name, gender, year in test_cases:
+        solar_birth_info = SolarBirthInfo(
+            year=year,
+            month=7,
+            day=1,
+            hour=12
+        )
+        
+        fate_owner = FateOwner(
+            name=f"测试_{case_name}",
+            gender=gender,
+            solar_birth_info=solar_birth_info
+        )
+        
+        fate_owner.calculate_bazi()
+        
+        console.print(Panel(
+            fate_owner.get_summary(),
+            title=f"{case_name}测试",
+            border_style="blue"
+        ))
+        print_destiny_cycle_info(fate_owner)
 
 def main():
     """主函数"""
@@ -236,6 +334,9 @@ def main():
         
         # 测试特殊情况
         test_special_cases()
+        
+        # 测试性别和年干阴阳组合
+        test_gender_cases()
         
     except Exception as e:
         console.print(f"[red]发生错误：{str(e)}[/red]")
