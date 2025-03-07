@@ -47,11 +47,14 @@ python run_server.py
 
 - 输入出生日期和时间，选择性别，点击"计算八字"按钮，即可获取八字排盘结果。
 
-## 系统要求
+## Todos
 
-- Python 3.6+
-- sxtwl 2.0.6
-- python-dateutil 2.8.2+
+- [x] 命主信息
+- [x] 排盘引擎
+- [x] 大运计算
+- [ ] 前端环境 Dockerfile
+- [ ] 后端环境 Dockerfile 
+- [ ] 提示词模版优化
 
 ## 项目结构
 

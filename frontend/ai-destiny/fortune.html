@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>八字算命 - AI命运占卜</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/fortune.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="glass-card">
+            <div class="logo">
+                <i class="fas fa-moon"></i>
+                <h1>AI命运占卜</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">首页</a></li>
+                    <li><a href="#" class="active">八字算命</a></li>
+                    <li><a href="about.html">关于我们</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <main>
+            <section class="intro glass-card">
+                <h2>八字算命</h2>
+                <p>八字算命是中国传统命理学的重要组成部分，通过分析您的出生年、月、日、时所对应的天干地支，揭示您的命运轨迹、性格特质和人生机遇。结合现代AI技术，我们能够为您提供更加精准的命运解读。</p>
+            </section>
+
+            <section class="fortune-form glass-card">
+                <h3>填写您的出生信息</h3>
+                <form id="fortuneForm">
+                    <div class="form-group">
+                        <label for="birthDate">出生日期</label>
+                        <input type="date" id="birthDate" name="birthDate" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="birthTime">出生时间</label>
+                        <input type="time" id="birthTime" name="birthTime" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="gender">性别</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="gender" value="male" checked>
+                                <span class="radio-custom"></span>
+                                男
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="gender" value="female">
+                                <span class="radio-custom"></span>
+                                女
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="birthPlace">出生地点</label>
+                        <input type="text" id="birthPlace" name="birthPlace" placeholder="例如：北京市" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="analysisType">分析类型</label>
+                        <select id="analysisType" name="analysisType">
+                            <option value="comprehensive">综合分析</option>
+                            <option value="personality">性格特质</option>
+                            <option value="career">事业财运</option>
+                            <option value="relationship">感情婚姻</option>
+                            <option value="health">健康状况</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn primary-btn">开始分析</button>
+                </form>
+            </section>
+
+            <section class="result-section glass-card" id="resultSection" style="display: none;">
+                <div class="result-header">
+                    <h3>命盘分析结果</h3>
+                    <div class="result-meta">
+                        <span id="userBirthInfo"></span>
+                        <span id="analysisTypeInfo"></span>
+                    </div>
+                </div>
+                
+                <div class="bazi-chart">
+                    <div class="chart-title">八字命盘</div>
+                    <div class="chart-grid">
+                        <div class="chart-cell">
+                            <div class="cell-title">年柱</div>
+                            <div class="cell-content" id="yearPillar">
+                                <div class="heavenly-stem"></div>
+                                <div class="earthly-branch"></div>
+                            </div>
+                        </div>
+                        <div class="chart-cell">
+                            <div class="cell-title">月柱</div>
+                            <div class="cell-content" id="monthPillar">
+                                <div class="heavenly-stem"></div>
+                                <div class="earthly-branch"></div>
+                            </div>
+                        </div>
+                        <div class="chart-cell">
+                            <div class="cell-title">日柱</div>
+                            <div class="cell-content" id="dayPillar">
+                                <div class="heavenly-stem"></div>
+                                <div class="earthly-branch"></div>
+                            </div>
+                        </div>
+                        <div class="chart-cell">
+                            <div class="cell-title">时柱</div>
+                            <div class="cell-content" id="hourPillar">
+                                <div class="heavenly-stem"></div>
+                                <div class="earthly-branch"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="analysis-result">
+                    <div class="result-section-title">
+                        <i class="fas fa-star"></i>
+                        <h4>命盘解读</h4>
+                    </div>
+                    <div class="result-content" id="baziInterpretation">
+                        <!-- 八字解读内容将通过JavaScript动态插入 -->
+                        <div class="loading-spinner">
+                            <div class="spinner"></div>
+                            <p>AI正在分析您的命盘...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="analysis-result">
+                    <div class="result-section-title">
+                        <i class="fas fa-user"></i>
+                        <h4>性格特质</h4>
+                    </div>
+                    <div class="result-content" id="personalityAnalysis">
+                        <!-- 性格分析内容将通过JavaScript动态插入 -->
+                    </div>
+                </div>
+                
+                <div class="analysis-result">
+                    <div class="result-section-title">
+                        <i class="fas fa-briefcase"></i>
+                        <h4>事业财运</h4>
+                    </div>
+                    <div class="result-content" id="careerAnalysis">
+                        <!-- 事业分析内容将通过JavaScript动态插入 -->
+                    </div>
+                </div>
+                
+                <div class="analysis-result">
+                    <div class="result-section-title">
+                        <i class="fas fa-heart"></i>
+                        <h4>感情婚姻</h4>
+                    </div>
+                    <div class="result-content" id="relationshipAnalysis">
+                        <!-- 感情分析内容将通过JavaScript动态插入 -->
+                    </div>
+                </div>
+                
+                <div class="analysis-result">
+                    <div class="result-section-title">
+                        <i class="fas fa-heartbeat"></i>
+                        <h4>健康状况</h4>
+                    </div>
+                    <div class="result-content" id="healthAnalysis">
+                        <!-- 健康分析内容将通过JavaScript动态插入 -->
+                    </div>
+                </div>
+                
+                <div class="analysis-result">
+                    <div class="result-section-title">
+                        <i class="fas fa-lightbulb"></i>
+                        <h4>运势建议</h4>
+                    </div>
+                    <div class="result-content" id="adviceAnalysis">
+                        <!-- 建议内容将通过JavaScript动态插入 -->
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="btn secondary-btn" id="saveResultBtn">
+                        <i class="fas fa-download"></i> 保存结果
+                    </button>
+                    <button class="btn primary-btn" id="newAnalysisBtn">
+                        <i class="fas fa-redo"></i> 新的分析
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <footer class="glass-card">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <i class="fas fa-moon"></i>
+                    <h3>AI命运占卜</h3>
+                </div>
+                <div class="footer-links">
+                    <h4>快速链接</h4>
+                    <ul>
+                        <li><a href="index.html">首页</a></li>
+                        <li><a href="#">八字算命</a></li>
+                        <li><a href="about.html">关于我们</a></li>
+                    </ul>
+                </div>
+                <div class="footer-contact">
+                    <h4>联系我们</h4>
+                    <p><i class="fas fa-envelope"></i> contact@aidestiny.com</p>
+                    <div class="social-icons">
+                        <a href="#"><i class="fab fa-weixin"></i></a>
+                        <a href="#"><i class="fab fa-weibo"></i></a>
+                        <a href="#"><i class="fab fa-qq"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; 2023 AI命运占卜. 保留所有权利.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="js/fortune.js"></script>
+</body>
+</html> 

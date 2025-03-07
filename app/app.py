@@ -10,7 +10,7 @@ import logging
 import os
 from app.model import get_chat_model
 from langchain.schema import HumanMessage
-from app.fate_owner import BirthInfo, FateOwner, Gender, BaziInfo, SolarBirthInfo, LunarBirthInfo
+from app.fate_owner import FateOwner, Gender, BaziInfo, SolarBirthInfo, LunarBirthInfo
 from app.prompt_templates import get_bazi_report_prompt
 import json
 
@@ -34,7 +34,7 @@ app.add_middleware(
 )
 
 # 挂载静态文件目录
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
+app.mount("/", StaticFiles(directory="frontend/ai-destiny-vue/dist", html=True), name="static")
 
 class BaziResponse(BaseModel):
     solar_date: str
@@ -173,29 +173,30 @@ async def get_fate_report(birth_info: Union[SolarBirthInfo, LunarBirthInfo] = No
     )
 
 @app.post("/api/basic_report")
-async def get_basic_report(birth_info: Union[SolarBirthInfo, LunarBirthInfo]):
+async def get_basic_report(birth_info: SolarBirthInfo):
     """获取基本命盘解读"""
-    # 创建命主对象
-    fate_owner = FateOwner(
-        gender=Gender.MALE if birth_info.gender == "male" else Gender.FEMALE,
-        solar_birth_info=birth_info if isinstance(birth_info, SolarBirthInfo) else None,
-        lunar_birth_info=birth_info if isinstance(birth_info, LunarBirthInfo) else None
-    )
-    
-    # 计算八字
-    fate_owner.calculate_bazi()
-    
-    # 使用LLM生成解读
-    llm = get_chat_model(model_source=os.environ.get("MODEL_SOURCE", "local"))
-    prompt = f"请对以下八字进行命理解读：{fate_owner.bazi_info.get_bazi_string()}"
-    messages = [HumanMessage(content=prompt)]
-    response = llm.invoke(messages)
-    
-    return {
-        "bazi": fate_owner.bazi_info.get_bazi_string(),
-        "reading": response.content
-    }
+    try:
+        # 创建命主对象
+        fate_owner = FateOwner(
+            gender=Gender.MALE if birth_info.gender == "male" else Gender.FEMALE,
+            solar_birth_info=birth_info
+        )
+        
+        # 计算八字
+        engine = BaziPaipanEngine()
+        bazi_info = fate_owner.calculate_bazi(engine)
+        
+        # 使用LLM生成解读
+        llm = get_chat_model(model_source=os.environ.get("MODEL_SOURCE", "local"))
+        prompt = f"请对以下八字进行命理解读：{bazi_info.get_bazi_string()}"
+        messages = [HumanMessage(content=prompt)]
+        response = llm.invoke(messages)
+        
+        return {
+            "bazi": bazi_info.get_bazi_string(),
+            "reading": response.content
+        }
+    except Exception as e:
+        logger.error(f"生成命盘解读时发生错误：{str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/")
-async def root():
-    return FileResponse("frontend/index.html", media_type="text/html; charset=utf-8")
