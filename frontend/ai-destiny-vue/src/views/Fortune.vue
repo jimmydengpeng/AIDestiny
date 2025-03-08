@@ -1,7 +1,7 @@
 <template>
   <div class="fortune container">
     <div class="glass-card">
-      <h2>八字命盘</h2>
+      <h2>飞灵八字命盘</h2>
       <form @submit.prevent="submitForm" class="fortune-form">
         <div class="form-group">
           <label for="gender">性别</label>
@@ -59,6 +59,11 @@
           </div>
         </div>
 
+        <!-- 添加状态显示 -->
+        <div v-if="error" class="error-message">
+          <p>{{ error }}</p>
+        </div>
+        
         <button 
           type="submit" 
           class="btn primary-btn"
@@ -66,6 +71,12 @@
         >
           {{ loading ? '计算中...' : '开始测算' }}
         </button>
+        
+        <!-- 添加调试信息 -->
+        <div v-if="debugInfo" class="debug-info">
+          <h4>调试信息</h4>
+          <pre>{{ debugInfo }}</pre>
+        </div>
       </form>
 
       <!-- 结果展示区域 -->
@@ -74,7 +85,7 @@
           <h3>八字命盘</h3>
           <p class="bazi-text">{{ result.bazi }}</p>
           
-          <h3>AI解读</h3>
+          <h3>命理解读</h3>
           <div class="reading-content" v-html="formatReading(result.reading)"></div>
         </div>
       </div>
@@ -95,6 +106,7 @@ const formData = ref({
 const loading = ref(false)
 const result = ref(null)
 const error = ref(null)
+const debugInfo = ref(null)
 
 const formatReading = (text) => {
   return text.replace(/\n/g, '<br>')
@@ -104,6 +116,13 @@ const submitForm = async () => {
   try {
     loading.value = true
     error.value = null
+    debugInfo.value = null
+    
+    // 验证表单
+    if (!formData.value.birthDate) {
+      error.value = '请选择出生日期时间'
+      return
+    }
     
     const date = new Date(formData.value.birthDate)
     
@@ -117,17 +136,24 @@ const submitForm = async () => {
       minute: date.getMinutes()
     }
     
+    debugInfo.value = `请求数据: ${JSON.stringify(requestData, null, 2)}`
+    console.log('发送请求数据:', requestData)
+    
     // 发送请求到后端API
     const response = await axios.post('/api/basic_report', requestData, {
       headers: {
         'Content-Type': 'application/json'
       }
     })
+    
+    console.log('收到响应:', response.data)
+    debugInfo.value += `\n\n响应数据: ${JSON.stringify(response.data, null, 2)}`
     result.value = response.data
     
   } catch (err) {
-    error.value = err.response?.data?.detail || '请求失败，请稍后重试'
     console.error('占卜出错:', err)
+    error.value = err.response?.data?.detail || `请求失败: ${err.message}`
+    debugInfo.value += `\n\n错误信息: ${JSON.stringify(err.response?.data || err.message, null, 2)}`
   } finally {
     loading.value = false
   }
@@ -136,7 +162,7 @@ const submitForm = async () => {
 
 <style scoped>
 .fortune {
-  padding: 40px 20px;
+  width: 100%;
   max-width: 800px;
   margin: 0 auto;
 }
@@ -241,6 +267,30 @@ h2 {
 h3 {
   color: #2c3e50;
   margin: 20px 0 15px;
+}
+
+.error-message {
+  background-color: #fff5f5;
+  color: #e53e3e;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  text-align: left;
+}
+
+.debug-info {
+  margin-top: 20px;
+  text-align: left;
+  background-color: #f8f9fa;
+  padding: 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  overflow-x: auto;
+}
+
+.debug-info pre {
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 @media (max-width: 768px) {

@@ -5,14 +5,19 @@ from app.define import Gender, SolarBirthInfo, LunarBirthInfo, BaziInfo, PillarI
 
 class FateOwner():
     """命主类，包含生日信息和八字信息"""
-    name: Optional[str]
+    name: Optional[str] = None
     gender: Gender
-    solar_birth_info: Optional[SolarBirthInfo]
-    lunar_birth_info: Optional[LunarBirthInfo]
-    bazi_info: Optional[BaziInfo]
+    solar_birth_info: Optional[SolarBirthInfo] = None
+    lunar_birth_info: Optional[LunarBirthInfo] = None
+    bazi_info: Optional[BaziInfo] = None
     engine: BaziPaipanEngine = BaziPaipanEngine()
     
-    def __init__(self):
+    def __init__(self, gender: Gender = None, solar_birth_info: SolarBirthInfo = None, lunar_birth_info: LunarBirthInfo = None, name: str = None):
+        self.gender = gender
+        self.solar_birth_info = solar_birth_info
+        self.lunar_birth_info = lunar_birth_info
+        self.name = name
+        
         # 如果只提供了一种生日信息，自动转换生成另一种
         if self.solar_birth_info and not self.lunar_birth_info:
             self._convert_solar_to_lunar()
@@ -63,8 +68,11 @@ class FateOwner():
             minute=self.lunar_birth_info.minute
         )
     
-    def calculate_bazi(self) -> BaziInfo:
+    def calculate_bazi(self, engine: BaziPaipanEngine = None) -> BaziInfo:
         """计算八字信息"""
+        # 使用传入的引擎或默认引擎
+        paipan_engine = engine if engine else self.engine
+        
         # 确保有农历信息用于计算
         if not self.lunar_birth_info:
             if self.solar_birth_info:
@@ -73,7 +81,7 @@ class FateOwner():
                 raise ValueError("需要阳历或农历生日信息才能计算八字")
         
         # 使用排盘引擎计算八字
-        bazi_dict = self.engine.calculate_bazi(
+        bazi_dict = paipan_engine.calculate_bazi(
             lunar_year    = self.lunar_birth_info.year,
             lunar_month   = self.lunar_birth_info.month,
             lunar_day     = self.lunar_birth_info.day,

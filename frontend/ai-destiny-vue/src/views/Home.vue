@@ -1,8 +1,8 @@
 <template>
   <div class="home">
     <div class="hero">
-      <h1>AI命运占卜</h1>
-      <p class="subtitle">探索你的命运轨迹，智能解读人生</p>
+      <h1>飞灵</h1>
+      <p class="subtitle">专业八字算命，智能解读人生</p>
     </div>
     
     <div class="features">
@@ -13,7 +13,7 @@
       </div>
       
       <div class="feature-card">
-        <h3>AI解读</h3>
+        <h3>命理解读</h3>
         <p>智能分析命盘，深入解读人生</p>
         <button class="primary-btn">即将推出</button>
       </div>
@@ -27,9 +27,7 @@
 
 <style scoped>
 .home {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+  width: 100%;
 }
 
 .hero {
@@ -70,7 +68,7 @@ h1 {
 }
 
 .feature-card:hover {
-  transform: translateY(-5px);
+  
 }
 
 .feature-card h3 {

@@ -1,7 +1,7 @@
 {
-  "name": "ai-destiny-vue",
+  "name": "fatelling-vue",
   "version": "1.0.0",
-  "description": "AI命运占卜应用 - Vue版本",
+  "description": "飞灵八字算命应用 - Vue版本",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,7 +11,8 @@
   "keywords": [
     "vue",
     "uniapp",
-    "fortune-telling"
+    "bazi",
+    "fatelling"
   ],
   "author": "",
   "license": "ISC",

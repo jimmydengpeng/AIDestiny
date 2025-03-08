@@ -215,7 +215,6 @@ class BaziPaipanEngine:
                 self._calculate_stem_ten_god(hidden_stem, day_stem)
                 for hidden_stem in hidden_stems
             ]
-        
         return result
     
     def _calculate_stem_ten_god(self, stem: str, day_stem: str) -> str:
@@ -249,7 +248,7 @@ class BaziPaipanEngine:
         """
         if branch not in self.BRANCH_HIDDEN_STEM:
             return ""
-        
+
         # 获取地支的本气（第一个藏干）
         hidden_stem = self.BRANCH_HIDDEN_STEM[branch][0]
         return self._calculate_stem_ten_god(hidden_stem, day_stem)
@@ -288,17 +287,22 @@ class BaziPaipanEngine:
 
     def get_bazi_string(self, bazi: Dict) -> str:
         """
-        将八字转换为字符串格式
+        将八字转换为字符串格式，包括天干、地支和藏干信息，以及起运日期信息
         Args:
             bazi: 八字信息字典
         Returns:
-            格式化的八字字符串, e.g., "甲子 乙丑 丙寅 丁卯"
+            格式化的八字字符串，包括天干、地支和藏干信息，以及起运日期信息，e.g., "甲子（丙寅） 乙丑（戊辰） 丙寅（庚午） 丁卯（辛未）"，起运日期：1992年7月27日
         """
         result = []
         for pillar in [YEAR, MONTH, DAY, HOUR]:
             stem = bazi[pillar][STEM]
             branch = bazi[pillar][BRANCH]
-            result.append(f"{stem}{branch}")
+            hidden_stems = bazi[pillar][HIDDEN_STEM]
+            hidden_stem_str = "（" + " ".join(hidden_stems) + "）"
+            result.append(f"{stem}{branch}{hidden_stem_str}")
+        qiyun_date_solar = bazi[DECADE_PILLAR]['qiyun_date_solar']
+        qiyun_date_lunar = bazi[DECADE_PILLAR]['qiyun_date_lunar']
+        result.append(f"起运日期：{qiyun_date_solar['year']}年{qiyun_date_solar['month']}月{qiyun_date_solar['day']}日（农历：{qiyun_date_lunar['year']}年{'闰' if qiyun_date_lunar['is_leap_month'] else ''}{qiyun_date_lunar['month']}月{qiyun_date_lunar['day']}日）")
         return " ".join(result)
 
     
@@ -357,7 +361,7 @@ class BaziPaipanEngine:
             (jieqi_time[0], jieqi_time[1], jieqi_time[2], jieqi_time[3], jieqi_time[4])
         )
         start_age = dayun_start_info["start_age"] # 起运岁数：出生后几年几月几天起运
-        qiyun_date = dayun_start_info["qiyun_date"] # 起运具体日期：起运时间是哪年哪月哪日
+        qiyun_date_solar = dayun_start_info["qiyun_date_solar"] # 起运具体日期：起运时间是哪年哪月哪日
         
         # 计算大运干支和年份
         destiny_cycles = []
@@ -367,7 +371,7 @@ class BaziPaipanEngine:
         )
         
         # 计算大运干支
-        first_cycle_year = qiyun_date["year"]
+        first_cycle_year = qiyun_date_solar["year"]
         for i in range(NUM_DECADE_PILLAR):
             if is_forward:
                 current_gz_index = (current_gz_index + 1) % 60
@@ -391,6 +395,8 @@ class BaziPaipanEngine:
         return {
             "cycles": destiny_cycles,
             "start_age": start_age,
+            "qiyun_date_solar": dayun_start_info['qiyun_date_solar'],
+            "qiyun_date_lunar": dayun_start_info['qiyun_date_lunar'],
             "jieqi_name": self.JIE_QI_NAMES[jieqi_idx], # 生日最近的一个节气名称
             "is_forward": is_forward
         }
@@ -458,6 +464,8 @@ class BaziPaipanEngine:
         # 将年、月、日的时间间隔转换为总天数
         total_days = years * 365 + months * 30 + final_days
         qiyun_date = birth_date + timedelta(days=total_days)
+        # 将起运日期转换为农历
+        qiyun_date_day = sxtwl.fromSolar(qiyun_date.year, qiyun_date.month, qiyun_date.day)
         
         return {
             "raw_minutes": delta_minutes,
@@ -471,10 +479,16 @@ class BaziPaipanEngine:
                 "months": months, 
                 "days": final_days
             },
-            "qiyun_date": {
+            "qiyun_date_solar": {
                 "year": qiyun_date.year,
                 "month": qiyun_date.month,
                 "day": qiyun_date.day
+            },
+            "qiyun_date_lunar": {
+                "year": qiyun_date_day.getLunarYear(),
+                "month": qiyun_date_day.getLunarMonth(),
+                "day": qiyun_date_day.getLunarDay(),
+                "is_leap_month": qiyun_date_day.isLunarLeap()
             }
         }
 
@@ -518,7 +532,15 @@ def main():
             
         print("\n=== 大运信息 ===")
         print("起运年龄:", bazi[DECADE_PILLAR]["start_age"])
+        print("-"*10)
+        qiyun_date_solar = bazi[DECADE_PILLAR]['qiyun_date_solar']
+        qiyun_date_lunar = bazi[DECADE_PILLAR]['qiyun_date_lunar']
+        print("起运日期（阳历）:", f"{qiyun_date_solar['year']}年{qiyun_date_solar['month']}月{qiyun_date_solar['day']}日")
+        print("起运日期（农历）:", f"{qiyun_date_lunar['year']}年{'闰' if qiyun_date_lunar['is_leap_month'] else ''}{qiyun_date_lunar['month']}月{qiyun_date_lunar['day']}日")
         print("大运流程:", " ".join([f"{cycle['tian_gan']}{cycle['di_zhi']} {cycle['year']}" for cycle in bazi[DECADE_PILLAR]["cycles"]]))
+
+        print("\n=== 八字 String ===")
+        print(engine.get_bazi_string(bazi))
         
     except ValueError as e:
         print(f"输入错误：{str(e)}")
