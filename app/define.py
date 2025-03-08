@@ -96,6 +96,26 @@ class SolarBirthInfo(BaseModel):
         return f"{self.year}年{self.month}月{self.day}日 {self.hour:02d}:{self.minute:02d}"
 
 
+class BasicUserInput(BaseModel):
+    """用户提交的基本信息"""
+    gender: str = Field(..., description="性别，male或female")
+    year  : int = Field(..., ge=1900, le=2100, description="出生年份，范围1900-2100")
+    month : int = Field(..., ge=1, le=12, description="出生月份，范围1-12")
+    day   : int = Field(..., ge=1, le=31, description="出生日期，范围1-31")
+    hour  : int = Field(..., ge=0, le=23, description="出生小时，范围0-23")
+    minute: int = Field(0,   ge=0, le=59, description="出生分钟，范围0-59")
+    
+    def to_solar_birth_info(self) -> SolarBirthInfo:
+        """转换为阳历生日信息"""
+        return SolarBirthInfo(
+            year=self.year,
+            month=self.month,
+            day=self.day,
+            hour=self.hour,
+            minute=self.minute
+        )
+
+
 class LunarBirthInfo(BaseModel):
     """农历生日信息数据结构"""
     year         : int  = Field(..., ge=1900, le=2100, description="农历年份，范围1900-2100")

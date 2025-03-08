@@ -11,6 +11,7 @@ import os
 from app.model import get_chat_model
 from langchain.schema import HumanMessage
 from app.fate_owner import FateOwner, Gender, BaziInfo, SolarBirthInfo, LunarBirthInfo
+from app.define import BasicUserInput
 from app.prompt_templates import get_bazi_report_prompt
 import json
 
@@ -173,30 +174,39 @@ async def get_fate_report(birth_info: Union[SolarBirthInfo, LunarBirthInfo] = No
     )
 
 @app.post("/api/basic_report")
-async def get_basic_report(birth_info: SolarBirthInfo):
+@app.get("/api/basic_report")  # 添加GET方法支持
+async def get_basic_report(user_input: BasicUserInput):
     """获取基本命盘解读"""
     try:
+        logger.info(f"收到八字算命请求: {user_input.dict()}")
+        
         # 创建命主对象
         fate_owner = FateOwner(
-            gender=Gender.MALE if birth_info.gender == "male" else Gender.FEMALE,
-            solar_birth_info=birth_info
+            gender=Gender.MALE if user_input.gender == "male" else Gender.FEMALE,
+            solar_birth_info=user_input.to_solar_birth_info()
         )
         
         # 计算八字
+        logger.info("开始计算八字...")
         engine = BaziPaipanEngine()
         bazi_info = fate_owner.calculate_bazi(engine)
+        logger.info(f"八字计算完成: {bazi_info.get_bazi_string()}")
         
         # 使用LLM生成解读
+        logger.info("开始生成命理解读...")
         llm = get_chat_model(model_source=os.environ.get("MODEL_SOURCE", "local"))
         prompt = f"请对以下八字进行命理解读：{bazi_info.get_bazi_string()}"
         messages = [HumanMessage(content=prompt)]
         response = llm.invoke(messages)
+        logger.info("命理解读生成完成")
         
-        return {
+        result = {
             "bazi": bazi_info.get_bazi_string(),
             "reading": response.content
         }
+        logger.info("返回结果成功")
+        return result
     except Exception as e:
         logger.error(f"生成命盘解读时发生错误：{str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"生成命盘解读失败: {str(e)}")
 

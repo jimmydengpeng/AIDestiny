@@ -2,7 +2,7 @@
   <header class="glass-card">
     <div class="logo">
       <i class="fas fa-moon"></i>
-      <h1>AI命运占卜</h1>
+      <h1>飞灵</h1>
     </div>
     <nav>
       <ul>
@@ -24,7 +24,7 @@ export default {
       navItems: [
         { name: '首页', path: '/' },
         { name: '八字算命', path: '/fortune' },
-        { name: '关于我们', path: '/about' }
+        { name: '关于飞灵', path: '/about' }
       ]
     }
   },

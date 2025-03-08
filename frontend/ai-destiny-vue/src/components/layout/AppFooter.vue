@@ -3,7 +3,7 @@
     <div class="footer-content">
       <div class="footer-logo">
         <i class="fas fa-moon"></i>
-        <h3>AI命运占卜</h3>
+        <h3>飞灵</h3>
       </div>
       <div class="footer-links">
         <h4>快速链接</h4>
@@ -15,7 +15,7 @@
       </div>
       <div class="footer-contact">
         <h4>联系我们</h4>
-        <p><i class="fas fa-envelope"></i> contact@aidestiny.com</p>
+        <p><i class="fas fa-envelope"></i> contact@fatelling.com</p>
         <div class="social-icons">
           <a href="#" v-for="(icon, index) in socialIcons" :key="index">
             <i :class="icon"></i>
@@ -24,7 +24,7 @@
       </div>
     </div>
     <div class="copyright">
-      <p>&copy; {{ currentYear }} AI命运占卜. 保留所有权利.</p>
+      <p>&copy; {{ currentYear }} 飞灵(Fatelling). 保留所有权利.</p>
     </div>
   </footer>
 </template>
@@ -37,7 +37,7 @@ export default {
       navItems: [
         { name: '首页', path: '/' },
         { name: '八字算命', path: '/fortune' },
-        { name: '关于我们', path: '/about' }
+        { name: '关于飞灵', path: '/about' }
       ],
       socialIcons: [
         'fab fa-weixin',
