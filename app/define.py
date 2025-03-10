@@ -85,6 +85,7 @@ BRANCH_HIDDEN_STEM = {
 
 class SolarBirthInfo(BaseModel):
     """阳历生日信息数据结构"""
+    gender: str = Field(..., description="性别，male或female")
     year  : int = Field(..., ge=1900, le=2100, description="出生年份，范围1900-2100")
     month : int = Field(..., ge=1, le=12, description="出生月份，范围1-12")
     day   : int = Field(..., ge=1, le=31, description="出生日期，范围1-31")
@@ -108,6 +109,7 @@ class BasicUserInput(BaseModel):
     def to_solar_birth_info(self) -> SolarBirthInfo:
         """转换为阳历生日信息"""
         return SolarBirthInfo(
+            gender=self.gender,
             year=self.year,
             month=self.month,
             day=self.day,
