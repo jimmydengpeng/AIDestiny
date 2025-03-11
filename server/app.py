@@ -4,15 +4,15 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 from datetime import datetime
-from app.paipan_engine import BaziPaipanEngine
+from server.paipan_engine import BaziPaipanEngine
 from typing import Dict, List, AsyncGenerator, Union
 import logging
 import os
-from app.model import get_chat_model
+from server.model import get_chat_model
 from langchain.schema import HumanMessage
-from app.fate_owner import FateOwner, Gender, BaziInfo, SolarBirthInfo, LunarBirthInfo
-from app.define import BasicUserInput
-from app.prompt_templates import get_bazi_report_prompt
+from server.fate_owner import FateOwner, Gender, BaziInfo, SolarBirthInfo, LunarBirthInfo
+from server.define import BasicUserInput
+from server.prompt_templates import get_bazi_report_prompt
 import json
 
 # 配置日志

@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional
-from app.paipan_engine import BaziPaipanEngine
-from app.define import Gender, SolarBirthInfo, LunarBirthInfo, BaziInfo, PillarInfo, HeavenlyStem, EarthlyBranch, TenGodInfo, TenGodType, DestinyCycleInfo, StartAge
+from server.paipan_engine import BaziPaipanEngine
+from server.define import Gender, SolarBirthInfo, LunarBirthInfo, BaziInfo, PillarInfo, HeavenlyStem, EarthlyBranch, TenGodInfo, TenGodType, DestinyCycleInfo, StartAge
 
 
 class FateOwner():
